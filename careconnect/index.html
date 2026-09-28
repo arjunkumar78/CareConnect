@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>CareConnect — Emergency &amp; essential services</title>
+<meta name="description" content="Find and reach nearby hospitals, pharmacies, police, fire, fuel and roadside help — with offline access when you need it most." />
+<meta name="theme-color" content="#0F6E6B" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<div class="app-shell" id="app-shell">
+
+  <!-- ============ AUTH / ONBOARDING ============ -->
+  <section id="screen-auth" class="auth-screen">
+    <div class="auth-brand">
+      <div class="auth-mark">C</div>
+      <div>
+        <div class="auth-name">CareConnect</div>
+        <div class="auth-tag">Nearby help, reachable fast</div>
+      </div>
+    </div>
+
+    <div class="auth-card">
+      <h1 id="auth-title">Welcome back</h1>
+      <p class="auth-sub" id="auth-sub">Sign in to see services near you.</p>
+
+      <form id="form-login">
+        <div class="field">
+          <label for="login-email">Email</label>
+          <input id="login-email" type="email" autocomplete="email" required />
+        </div>
+        <div class="field">
+          <label for="login-password">Password</label>
+          <input id="login-password" type="password" autocomplete="current-password" required minlength="6" />
+        </div>
+        <div class="field-error hidden" id="login-error" role="alert"></div>
+        <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+      </form>
+
+      <form id="form-signup" class="hidden">
+        <div class="field">
+          <label for="signup-name">Name</label>
+          <input id="signup-name" type="text" autocomplete="name" required />
+        </div>
+        <div class="field">
+          <label for="signup-email">Email</label>
+          <input id="signup-email" type="email" autocomplete="email" required />
+        </div>
+        <div class="field">
+          <label for="signup-password">Password</label>
+          <input id="signup-password" type="password" autocomplete="new-password" required minlength="6" />
+        </div>
+        <div class="field-error hidden" id="signup-error" role="alert"></div>
+        <button type="submit" class="btn btn-primary btn-block">Create account</button>
+      </form>
+
+      <div class="auth-switch">
+        <span id="auth-switch-text">New to CareConnect?</span>
+        <button type="button" id="btn-auth-switch">Create an account</button>
+      </div>
+    </div>
+
+    <p class="auth-note">Your account is stored on this device only. CareConnect never sends your location anywhere except when you choose to call or share it.</p>
+  </section>
+
+  <!-- ============ DASHBOARD ============ -->
+  <div id="screen-dashboard" class="hidden">
+
+    <div class="status-bar" id="status-bar" aria-label="Status">
+      <span class="status-chip" id="chip-location"><span class="dot dot-grey"></span><span>Locating…</span></span>
+      <span class="status-chip" id="chip-connectivity"><span class="dot dot-green"></span><span>Online</span></span>
+      <span class="status-chip hidden" id="chip-battery"><span class="dot dot-grey"></span><span></span></span>
+      <span class="status-chip" id="chip-data-mode"><span class="dot dot-green"></span><span>Live data</span></span>
+    </div>
+
+    <div id="view-home">
+      <header class="dashboard-header">
+        <div>
+          <h1 class="greeting" id="greeting-text">Hello 👋</h1>
+          <p class="greeting-sub" id="greeting-sub">Let's find what you need, nearby.</p>
+        </div>
+        <button class="avatar-btn" id="btn-avatar" aria-label="Open settings">A</button>
+      </header>
+
+      <div id="banner-slot"></div>
+
+      <div class="search-wrap">
+        <div class="situation-search">
+          <span aria-hidden="true">🔎</span>
+          <input type="text" id="situation-input" placeholder="What do you need help with?" aria-label="Describe your situation" />
+        </div>
+        <p class="situation-hint">e.g. "I ran out of petrol", "my friend had an accident", "I need a pharmacy"</p>
+      </div>
+
+      <div id="intent-banner-slot"></div>
+
+      <button class="emergency-cta" id="btn-emergency-mode">
+        <span class="ico" aria-hidden="true">🚨</span>
+        <span>
+          Emergency Mode
+          <small>One tap to the right kind of help</small>
+        </span>
+      </button>
+
+      <div class="quick-actions">
+        <button class="quick-action critical" id="qa-112"><span class="ico">📞</span>112 — Emergency</button>
+        <button class="quick-action critical" id="qa-1033"><span class="ico">📞</span>1033 — Highway</button>
+        <button class="quick-action" id="qa-share"><span class="ico">📍</span>Share location</button>
+      </div>
+
+      <div class="filter-row" id="filter-row" role="group" aria-label="Service category filters"></div>
+
+      <div class="map-section">
+        <div class="map-card">
+          <div class="map-live-badge" id="map-live-badge">🟢 LIVE</div>
+          <div id="map" role="application" aria-label="Map of nearby services"></div>
+          <button class="map-recenter" id="btn-recenter" aria-label="Center on my location">🎯</button>
+        </div>
+      </div>
+
+      <section class="list-section">
+        <div class="list-heading">
+          <h2 id="list-heading-text">Nearby services</h2>
+          <select class="sort-select" id="sort-select" aria-label="Sort services">
+            <option value="distance">Nearest first</option>
+            <option value="rating">Top rated</option>
+          </select>
+        </div>
+        <div class="service-list" id="service-list">
+          <div class="empty-state">
+            <span class="ico" aria-hidden="true">📍</span>
+            Turn on location to see nearby services.
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ============ SETTINGS VIEW ============ -->
+    <div id="view-settings" class="hidden">
+      <header class="dashboard-header">
+        <div>
+          <h1 class="greeting" style="font-size:1.5rem">Settings</h1>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="btn-close-settings">Done</button>
+      </header>
+
+      <div class="settings-list">
+        <div class="settings-group">
+          <h3>Profile</h3>
+          <div class="settings-row">
+            <div><div class="label" id="settings-name">—</div><div class="desc" id="settings-email">—</div></div>
+            <button class="btn btn-outline btn-sm" id="btn-logout">Log out</button>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3>Preferences</h3>
+          <div class="settings-row">
+            <div class="label">Distance units</div>
+            <select id="pref-units"><option value="km">Kilometers</option><option value="mi">Miles</option></select>
+          </div>
+          <div class="settings-row">
+            <div class="label">Theme</div>
+            <select id="pref-theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select>
+          </div>
+          <div class="settings-row">
+            <div class="label">Default category</div>
+            <select id="pref-default-category"><option value="all">All</option></select>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3>Offline area</h3>
+          <div class="settings-row">
+            <div>
+              <div class="label">20 km offline area</div>
+              <div class="desc" id="offline-area-status">Not downloaded yet</div>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btn-download-offline">Download</button>
+          </div>
+          <div class="settings-row">
+            <div class="label">Clear offline data</div>
+            <button class="btn btn-outline btn-sm" id="btn-clear-offline">Clear</button>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3>Device</h3>
+          <div class="settings-row">
+            <div class="label">Flashlight</div>
+            <button class="btn btn-outline btn-sm" id="btn-flashlight">Toggle</button>
+          </div>
+          <div class="settings-row">
+            <div class="label">Install CareConnect</div>
+            <button class="btn btn-outline btn-sm" id="btn-install" disabled>Not available</button>
+          </div>
+        </div>
+
+        <p class="auth-note">CareConnect only stores what's needed to run offline. No location history is kept beyond your current position and your saved offline area.</p>
+      </div>
+    </div>
+
+    <nav class="tab-bar" aria-label="Primary">
+      <button class="tab-btn" id="tab-home" aria-current="true"><span class="ico">🏠</span>Home</button>
+      <button class="tab-btn" id="tab-emergency"><span class="ico">🚨</span>Emergency</button>
+      <button class="tab-btn" id="tab-offline"><span class="ico">📴</span>Offline</button>
+      <button class="tab-btn" id="tab-settings"><span class="ico">⚙️</span>Settings</button>
+    </nav>
+  </div>
+
+  <!-- ============ EMERGENCY MODE OVERLAY ============ -->
+  <div id="emergency-overlay" class="emergency-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="emergency-title">
+    <div class="emergency-overlay-head">
+      <h1 id="emergency-title">Emergency Mode</h1>
+      <button class="emergency-close" id="btn-close-emergency" aria-label="Close emergency mode">✕</button>
+    </div>
+    <p class="emergency-sub">Choose what's happening — CareConnect will prioritize the right nearby services immediately.</p>
+
+    <div class="emergency-grid" id="emergency-grid"></div>
+
+    <div class="emergency-hotlines">
+      <div class="hotline-row">
+        <div><div class="num">112</div><div class="label">India — Emergency number</div></div>
+        <button class="btn btn-critical btn-sm" id="hotline-112">Call</button>
+      </div>
+      <div class="hotline-row">
+        <div><div class="num">1033</div><div class="label">National Highway assistance</div></div>
+        <button class="btn btn-critical btn-sm" id="hotline-1033">Call</button>
+      </div>
+      <div class="hotline-row">
+        <div><div class="num">📍</div><div class="label">Share my location now</div></div>
+        <button class="btn btn-outline btn-sm" id="hotline-share" style="background:rgba(255,255,255,0.1);color:#fff;border-color:rgba(255,255,255,0.2);">Share</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SERVICE DETAIL SHEET ============ -->
+  <div id="sheet-backdrop" class="sheet-backdrop hidden"></div>
+  <div id="service-sheet" class="sheet hidden" role="dialog" aria-modal="true" aria-labelledby="sheet-name">
+    <div class="sheet-handle"></div>
+    <div id="sheet-content"></div>
+  </div>
+
+</div>
+
+<div aria-live="polite" class="sr-only" id="live-region"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="js/location.js"></script>
+<script src="js/data.js"></script>
+<script src="js/offline.js"></script>
+<script src="js/intent.js"></script>
+<script src="js/actions.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
